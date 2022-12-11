@@ -1,0 +1,47 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+#####################################
+Description: >
+  Yxar-CloudFront
+##############
+Parameters:
+  # Existing Bucket name
+  PipelineID:
+    Description: which is Existing Bucket name
+    Type: String
+
+Resources:
+  CloudFrontOriginAccessIdentity:
+    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: Origin Access Identity for Serverless Static Website
+
+  WebpageCDN:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !Sub "${PipelineID}.s3.amazonaws.com"
+            Id: webpage
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+        Enabled: True
+        DefaultRootObject: index.html
+        DefaultCacheBehavior:
+          ForwardedValues:
+            QueryString: False
+          TargetOriginId: webpage
+          ViewerProtocolPolicy: allow-all
+
+Outputs:
+  WebpageDomainName:
+    Value: !GetAtt WebpageCDN.DomainName
+    Export:
+      Name: !Sub WebpageDomainName-${PipelineID}
+  #DO NOT EXPORT PipelineID unless it's last stack
+  PipelineID:
+    Description: keep PipelineID in exported list for future usage! in Blue/Green switching,...
+    Value: !Sub ${PipelineID}
+    Export:
+      Name: PipelineID      

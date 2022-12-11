@@ -1,0 +1,70 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+#####################################
+Description: >
+  Yxar-S3
+##############
+Parameters:
+  PipelineID:
+    # after initial bucket will be CIRCLE_WORKFLOW_ID or 
+    # part of it like 7 or 4 first characters ${CIRCLE_WORKFLOW_ID:0:7}   
+    Description: Used as bucket name
+    Type: String
+#################
+Resources:
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${PipelineID}
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      Tags:
+        - Key: Name
+          Value: !Sub WebsiteBucket-${PipelineID}
+
+#enable later if/when I added DNS with Route53
+  # S3BucketBare:
+  #   Type: "AWS::S3::Bucket"
+  #   Properties: 
+  #     BucketName: !Sub ${DomainName}
+  #     AccessControl: PublicRead      
+  #     WebsiteConfiguration:
+  #       RedirectAllRequestsTo:
+  #         HostName: !Sub www.${DomainName}
+  #         Protocol: http
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub ${EnvironmentName}-S3BucketBare
+
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref 'WebsiteBucket'
+      PolicyDocument:
+        Statement:
+        - Sid: PublicReadForGetBucketObjects
+          Effect: Allow
+          Principal: '*'
+          Action: s3:GetObject
+          Resource: !Join ['', ['arn:aws:s3:::', !Ref 'WebsiteBucket', /*]]
+
+Outputs:
+  # DO NOT EXPORT PipelineID unless it's last stack
+  # PipelineID:
+  #   Description: keep PipelineID in exported list
+  #   Value: !Sub ${PipelineID}
+  #   Export:
+  #     Name: PipelineID
+  WebsiteBucketName: 
+    Description: A reference to the created S3 BucketName
+    Value: !Ref WebsiteBucket
+    Export:
+      Name: !Sub WebsiteBucketName-${PipelineID}
+  WebsiteBucketWebsiteURL: 
+    Description: A reference to the created S3 BucketName WebsiteURL
+    Value: !GetAtt WebsiteBucket.WebsiteURL
+    Export:
+      Name: !Sub WebsiteBucketWebsiteURL-${PipelineID}
+
