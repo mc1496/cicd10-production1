@@ -19,7 +19,7 @@ aws s3 sync ./website s3://"${CIRCLE_WORKFLOW_ID0}" --delete
 
 aws cloudformation deploy \
 --template-file cloudfront.yml \
---stack-name "xam-distro-${CIRCLE_WORKFLOW_ID0}" \
+--stack-name "xam-distro" \
 --parameter-overrides PipelineID="${CIRCLE_WORKFLOW_ID0}" \
 --tags project=XAM
 

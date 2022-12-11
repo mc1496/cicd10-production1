@@ -2,6 +2,7 @@
 version: 2.1
 
 # we can also use  few chars ${CIRCLE_WORKFLOW_ID:0:5}
+# sample CIRCLE_WORKFLOW_ID 878feef3-5126-4468-957e-6c2bcedf454f
 commands:
   destroy_failed_bucket:
     steps:
@@ -16,7 +17,7 @@ commands:
             # aws cloudformation wait stack-delete-complete \
             # --stack-name xam-bkt-${CIRCLE_CI_WORKFLOW_ID} \
             # echo "FAILED S3 stack is deleted."
-            ./delete.sh xam-bkt-${CIRCLE_CI_WORKFLOW_ID}
+            ./delete.sh "xam-bkt-${CIRCLE_WORKFLOW_ID:0:7}"
   destroy_failed_distro:
     steps:
       - run:
@@ -30,7 +31,7 @@ commands:
             # aws cloudformation wait stack-delete-complete \
             # --stack-name xam-distro-${CIRCLE_CI_WORKFLOW_ID} \
             # echo "FAILED DISTRO stack is deleted."
-            ./delete.sh xam-distro-${CIRCLE_CI_WORKFLOW_ID}            
+            ./delete.sh "xam-distro"            
 
   # print_pipeline_id:
   #   description: "print_pipeline_id"
@@ -89,7 +90,7 @@ jobs:
             # aws cloudformation wait stack-delete-complete \
             # --stack-name xam-distro-${Old_PipelineID} \
             # echo "OLD Cloudfront DISTRO stack is deleted."
-            ./delete.sh xam-distro-${Old_PipelineID}
+            #./delete.sh xam-distro
             ################################################
             aws s3 rm "s3://${Old_PipelineID}" --recursive
             ################################################
@@ -110,8 +111,8 @@ jobs:
           command: |
             aws cloudformation deploy \
             --template-file bucket.yml \
-            --stack-name xam-bkt-${CIRCLE_WORKFLOW_ID} \
-            --parameter-overrides PipelineID="${CIRCLE_WORKFLOW_ID}" \
+            --stack-name xam-bkt-${CIRCLE_WORKFLOW_ID:0:7} \
+            --parameter-overrides PipelineID="${CIRCLE_WORKFLOW_ID:0:7}" \
             --tags project=XAM
       - destroy_failed_bucket
 
@@ -122,12 +123,12 @@ jobs:
       - run:
           name: Upload Website files to S3 bucket
           command: |
-            aws s3 sync ./website s3://"${CIRCLE_WORKFLOW_ID}" --delete
+            aws s3 sync ./website s3://"${CIRCLE_WORKFLOW_ID:0:7}" --delete
       - run:
           name: pull back (delete S3 file) if failed
           when: on_fail
           command: |
-            aws s3 rm "s3://${CIRCLE_WORKFLOW_ID}" --recursive          
+            aws s3 rm "s3://${CIRCLE_WORKFLOW_ID:0:7}" --recursive          
       - destroy_failed_bucket
   
   create_distro:
@@ -139,15 +140,15 @@ jobs:
           command: |
             aws cloudformation deploy \
             --template-file cloudfront.yml \
-            --stack-name xam-distro-${CIRCLE_WORKFLOW_ID} \
-            --parameter-overrides PipelineID="${CIRCLE_WORKFLOW_ID}" \
+            --stack-name xam-distro \
+            --parameter-overrides PipelineID="${CIRCLE_WORKFLOW_ID:0:7}" \
             --tags project=XAM
-      - destroy_failed_distro
+      #- destroy_failed_distro
       - run:
           name: pull back (delete S3 file) if failed
           when: on_fail
           command: |
-            aws s3 rm "s3://${CIRCLE_WORKFLOW_ID}" --recursive          
+            aws s3 rm "s3://${CIRCLE_WORKFLOW_ID:0:7}" --recursive          
       - destroy_failed_bucket
   
 
@@ -158,12 +159,12 @@ workflows:
       - upload_website_to_s3:
           requires:
             - create_s3_bucket
-      - create_distro:
-          requires:
-            - upload_website_to_s3
       - get_last_deployment_id:
           requires:
-            - create_distro
+            - upload_website_to_s3
+      - create_distro:
+          requires:
+            - get_last_deployment_id      
       - del_last_deployment:
           requires:
             - create_distro
