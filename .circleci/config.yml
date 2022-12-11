@@ -91,7 +91,7 @@ jobs:
             # echo "OLD Cloudfront DISTRO stack is deleted."
             ./delete.sh xam-distro-${Old_PipelineID}
             ################################################
-            aws s3 rm "s3://${Old_PipelineID}" --recursive --region us-east-1
+            aws s3 rm "s3://${Old_PipelineID}" --recursive
             ################################################
             # aws cloudformation delete-stack \
             # --stack-name xam-bkt-${Old_PipelineID} \
@@ -112,7 +112,7 @@ jobs:
             --template-file bucket.yml \
             --stack-name xam-bkt-${CIRCLE_WORKFLOW_ID} \
             --parameter-overrides PipelineID="${CIRCLE_WORKFLOW_ID}" \
-            --tags project=XAM --region=us-east-1
+            --tags project=XAM
       - destroy_failed_bucket
 
   upload_website_to_s3:
@@ -122,12 +122,12 @@ jobs:
       - run:
           name: Upload Website files to S3 bucket
           command: |
-            aws s3 sync ./website s3://"${CIRCLE_WORKFLOW_ID}" --delete --region us-east-1
+            aws s3 sync ./website s3://"${CIRCLE_WORKFLOW_ID}" --delete
       - run:
           name: pull back (delete S3 file) if failed
           when: on_fail
           command: |
-            aws s3 rm "s3://${CIRCLE_WORKFLOW_ID}" --recursive --region us-east-1          
+            aws s3 rm "s3://${CIRCLE_WORKFLOW_ID}" --recursive          
       - destroy_failed_bucket
   
   create_distro:
@@ -141,13 +141,13 @@ jobs:
             --template-file cloudfront.yml \
             --stack-name xam-distro-${CIRCLE_WORKFLOW_ID} \
             --parameter-overrides PipelineID="${CIRCLE_WORKFLOW_ID}" \
-            --tags project=XAM --region=us-east-1
+            --tags project=XAM
       - destroy_failed_distro
       - run:
           name: pull back (delete S3 file) if failed
           when: on_fail
           command: |
-            aws s3 rm "s3://${CIRCLE_WORKFLOW_ID}" --recursive --region us-east-1         
+            aws s3 rm "s3://${CIRCLE_WORKFLOW_ID}" --recursive          
       - destroy_failed_bucket
   
 
@@ -166,6 +166,6 @@ workflows:
             - create_distro
       - del_last_deployment:
           requires:
-            - get_last_deployment_id
+            - create_distro
 
 # VS Code Extension Version: 1.4.0
